@@ -209,7 +209,7 @@ echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debcon
 apt-get update
 apt-get upgrade -y
 apt-get install -y deb.torproject.org-keyring
-apt-get install -y --assume-yes apt-transport-tor tor torsocks proxychains nethogs sudo screen git haveged curl pwgen secure-delete openvpn resolvconf fail2ban tor-arm tor-geoipdb debconf-utils iptables iptables-persistent apparmor apparmor-profiles apparmor-utils unattended-upgrades apt-listchanges tlsdate attr lvm2 cryptsetup monit gnupg-curl logrotate
+apt-get install -y apt-transport-tor tor torsocks proxychains nethogs sudo screen git haveged curl pwgen secure-delete openvpn resolvconf fail2ban tor-arm tor-geoipdb debconf-utils iptables iptables-persistent apparmor apparmor-profiles apparmor-utils unattended-upgrades apt-listchanges tlsdate attr lvm2 cryptsetup monit gnupg-curl logrotate
 
 
 # Config/harden sysctl.conf.

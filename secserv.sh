@@ -284,13 +284,13 @@ RunAsDaemon 1
 DisableDebuggerAttachment 0
 DNSPort 53
 SocksPort 9050 IsolateClientAddr IsolateDestAddr IsolateDestPort ## MONIT ##
-SocksPort 9060 IsolateClientAddr IsolateDestAddr IsolateDestPort ## PRIVOXY ##
-SocksPort 9061 IsolateClientAddr IsolateDestAddr IsolateDestPort ## PROXYCHAINS ##
-SocksPort 9062 IsolateClientAddr IsolateDestAddr IsolateDestPort ## SSH SERVICE ##
+SocksPort 9060 IsolateClientAddr IsolateDestAddr IsolateDestPort ## PROXYCHAINS ##
+SocksPort 9061 IsolateClientAddr IsolateDestAddr IsolateDestPort ## SSH SERVICE ##
 HiddenServiceDir /var/lib/tor/ssh/                               #################
 HiddenServicePort "$sshport" 127.0.0.1:"$sshport"                #################
-SocksPort 9063 IsolateClientAddr IsolateDestAddr IsolateDestPort ## GNUPG ##
-SocksPort 9064 IsolateClientAddr IsolateDestAddr IsolateDestPort ## CURL ##
+SocksPort 9062 IsolateClientAddr IsolateDestAddr IsolateDestPort ## GNUPG ##
+SocksPort 9063 IsolateClientAddr IsolateDestAddr IsolateDestPort ## CURL ##
+SocksPort 9064 IsolateClientAddr IsolateDestAddr IsolateDestPort 
 SocksPort 9065 IsolateClientAddr IsolateDestAddr IsolateDestPort
 SocksPort 9066 IsolateClientAddr IsolateDestAddr IsolateDestPort
 SocksPort 9067 IsolateClientAddr IsolateDestAddr IsolateDestPort
@@ -301,9 +301,9 @@ SocksPort 9070 IsolateClientAddr IsolateDestAddr IsolateDestPort" > /etc/tor/tor
 
 
 # Config Apps for Tor.
-sed -i 's|9050|9061|' /etc/proxychains.conf # Proxychains
-echo "keyserver-options http-proxy=socks5-hostname://127.0.0.1:9063" >> ~/.gnupg/gpg.conf # GnuPG
-sed -i 's|http\:|tor\:|g' /etc/apt/sources.list # Apt
+sed -i 's|9050|9060|' /etc/proxychains.conf
+echo "keyserver-options http-proxy=socks5-hostname://127.0.0.1:9062" >> ~/.gnupg/gpg.conf
+sed -i 's|http\:|tor\:|g' /etc/apt/sources.list
 
 
 # DNS
@@ -375,9 +375,9 @@ HISTSIZE=0
 HISTFILESIZE=0
 HISTFILE=""
 
-alias curl="curl -x socks5://127.0.0.1:9064"
-alias wget="proxychains wget"
-alias git="proxychains git"' > /etc/bash.bashrc
+alias tor-curl="curl -x socks5://127.0.0.1:9063"
+alias tor-wget="proxychains wget"
+alias tor-git="proxychains git"' > /etc/bash.bashrc
 cp /etc/bash.bashrc ~/.bashrc
 
 

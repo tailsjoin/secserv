@@ -35,7 +35,7 @@ HostKey /etc/ssh/ssh_host_ed25519_key
 KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256
 UsePrivilegeSeparation yes
 KeyRegenerationInterval 3600
-ServerKeyBits 1024
+ServerKeyBits 4096
 SyslogFacility AUTH
 LogLevel INFO
 LoginGraceTime 30
@@ -187,16 +187,29 @@ keyserver-options debug,verbose" > ~/.gnupg/gpg.conf
 
 # Config Apt sources.
 cp /etc/apt/sources.list /etc/apt/sources.list.bak
-echo -e "deb http://deb.torproject.org/torproject.org jessie main\ndeb-src http://deb.torproject.org/torproject.org jessie main\ndeb http://deb.torproject.org/torproject.org tor-experimental-0.2.7.x-jessie main\ndeb-src http://deb.torproject.org/torproject.org tor-experimental-0.2.7.x-jessie main\ndeb http://http.debian.net/debian/ jessie main contrib non-free\ndeb-src http://http.debian.net/debian/ jessie main contrib non-free\ndeb http://security.debian.org/ jessie/updates main contrib non-free\ndeb-src http://security.debian.org/ jessie/updates main contrib non-free" > /etc/apt/sources.list
+echo "deb http://deb.torproject.org/torproject.org jessie main
+deb-src http://deb.torproject.org/torproject.org jessie main
+deb http://deb.torproject.org/torproject.org tor-experimental-0.2.7.x-jessie main
+deb-src http://deb.torproject.org/torproject.org tor-experimental-0.2.7.x-jessie main
+deb http://http.debian.net/debian/ jessie main contrib non-free
+deb-src http://http.debian.net/debian/ jessie main contrib non-free
+deb http://security.debian.org/ jessie/updates main contrib non-free
+deb-src http://security.debian.org/ jessie/updates main contrib non-free" > /etc/apt/sources.list
+
 gpg --recv-keys A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
 gpg --export 886DDD89 | apt-key add -
+
+
+# Config debconf.
+echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | debconf-set-selections
+echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debconf-set-selections
 
 
 # Update, upgrade, and install.
 apt-get update
 apt-get upgrade -y
 apt-get install -y deb.torproject.org-keyring
-apt-get install -y apt-transport-tor tor torsocks proxychains nethogs sudo screen git haveged curl pwgen secure-delete openvpn resolvconf fail2ban tor-arm tor-geoipdb debconf-utils iptables iptables-persistent apparmor apparmor-profiles apparmor-utils unattended-upgrades apt-listchanges tlsdate attr lvm2 cryptsetup monit gnupg-curl logrotate
+apt-get install -y --assume-yes apt-transport-tor tor torsocks proxychains nethogs sudo screen git haveged curl pwgen secure-delete openvpn resolvconf fail2ban tor-arm tor-geoipdb debconf-utils iptables iptables-persistent apparmor apparmor-profiles apparmor-utils unattended-upgrades apt-listchanges tlsdate attr lvm2 cryptsetup monit gnupg-curl logrotate
 
 
 # Config/harden sysctl.conf.
@@ -213,11 +226,6 @@ net.ipv4.conf.all.rp_filter = 1
 net.ipv4.tcp_syncookies = 1
 net.ipv4.conf.all.accept_source_route = 0" > /etc/sysctl.conf
 sysctl -p
-
-
-# Config debconf.
-echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | debconf-set-selections
-echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debconf-set-selections
 
 
 # Iptable rules.
@@ -241,14 +249,13 @@ COMMIT" > /etc/iptables/rules.v4
 echo "*filter
 :INPUT DROP [0:0]
 :FORWARD DROP [0:0]
-:OUTPUT ACCEPT [0:0]
+:OUTPUT DROP [0:0]
 
--A INPUT -i lo -j ACCEPT
--A INPUT -p tcp --dport "$sshport" -j ACCEPT
--A INPUT -p ipv6-icmp --icmpv6-type echo-request -m limit --limit 2/s -j ACCEPT
+-A INPUT -i lo -j DROP
+-A INPUT -p tcp -j DROP
 -A INPUT -p ipv6-icmp --icmpv6-type echo-request -j DROP
--A INPUT -p ipv6-icmp -j ACCEPT
--A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A INPUT -p ipv6-icmp -j DROP
+-A INPUT -m state --state RELATED,ESTABLISHED -j DROP
 -A INPUT -m state --state INVALID -j DROP
 
 COMMIT" > /etc/iptables/rules.v6
@@ -371,6 +378,7 @@ HISTFILE=""
 alias curl="curl -x socks5://127.0.0.1:9064"
 alias wget="proxychains wget"
 alias git="proxychains git"' > /etc/bash.bashrc
+cp /etc/bash.bashrc ~/.bashrc
 
 
 # Config/harden .profile
@@ -607,11 +615,11 @@ chattr +i /etc/ssh/sshd_config /etc/ssh/ssh_config ~/.gnupg/gpg.conf ~/.ssh/auth
 # Finish
 clear
 echo "
- [+] SSH Port:  "$sshport"
- [+] Authorized SSH Key: $(ssh-keygen -lf ~/.ssh/authorized_keys | cut -b 6- | cut -b -48)
- [+] SSH Hidden Service:  $(cat /var/lib/tor/ssh/hostname)
- [+] RSA Host Key:  $(ssh-keygen -lf /etc/ssh/ssh_host_rsa_key | cut -b 6- | cut -b -48)
- [+] ED25519 Host Key:  $(ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key | cut -b 5- | cut -b -48)
+[+]  SSH Port:  "$sshport"
+[+]  Authorized SSH Key: $(ssh-keygen -lf ~/.ssh/authorized_keys | cut -b 6- | cut -b -48)
+[+]  SSH Hidden Service:  http://$(cat /var/lib/tor/ssh/hostname):"$sshport"
+[+]  RSA Host Key:  $(ssh-keygen -lf /etc/ssh/ssh_host_rsa_key | cut -b 6- | cut -b -48)
+[+]  ED25519 Host Key:  $(ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key | cut -b 5- | cut -b -48)
 
 "
 read -p "Press enter to exit. "

@@ -608,7 +608,7 @@ chown root:root /etc/logrotate.d/*
 
 
 # Lock files, clean up.
-srm -drv ~/.bash_history /var/log/wtmp /var/log/lastlog /var/run/utmp /var/log/mail.* /var/log/syslog* /var/log/messages* /var/log/auth.log* /var/log/apt/* &>/dev/null &
+srm -dr ~/.bash_history /var/log/wtmp /var/log/lastlog /var/run/utmp /var/log/mail.* /var/log/syslog* /var/log/messages* /var/log/auth.log* /var/log/apt/* &>/dev/null &
 chattr +i /etc/ssh/sshd_config /etc/ssh/ssh_config ~/.gnupg/gpg.conf ~/.ssh/authorized_keys /etc/network/interfaces
 
 

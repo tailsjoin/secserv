@@ -376,8 +376,8 @@ HISTFILESIZE=0
 HISTFILE=""
 
 alias tor-curl="curl -x socks5://127.0.0.1:9063"
-alias tor-wget="proxychains wget"
-alias tor-git="proxychains git"' > /etc/bash.bashrc
+alias tor-wget="torify wget"
+alias tor-git="torify git"' > /etc/bash.bashrc
 cp /etc/bash.bashrc ~/.bashrc
 
 

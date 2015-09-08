@@ -91,7 +91,8 @@ echo -e "\npassword   [success=1 default=ignore]      pam_unix.so nullok obscure
 echo -e "\nsession    optional     pam_tmpdir.so
 session    optional     pam_umask.so umask=077" >> /etc/pam.d/common-session
 
-echo "auth     required       pam_securetty.so       auth     required       pam_unix_auth.so
+echo "auth     required       pam_securetty.so
+auth     required       pam_unix_auth.so
 auth     required       pam_warn.so
 auth     required       pam_deny.so
 auth     required       pam_tally.so onerr=fail no_magic_root
@@ -209,8 +210,7 @@ echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debcon
 apt-get update
 apt-get upgrade -y
 apt-get install -y deb.torproject.org-keyring
-apt-get install -y apt-transport-tor tor torsocks proxychains nethogs sudo screen git haveged curl pwgen secure-delete openvpn resolvconf fail2ban tor-arm tor-geoipdb debconf-utils iptables iptables-persistent apparmor apparmor-profiles apparmor-utils unattended-upgrades apt-listchanges tlsdate attr lvm2 cryptsetup monit gnupg-curl logrotate
-
+apt-get install -y apparmor apparmor-profiles apparmor-utils apt-listchanges apt-transport-tor attr cryptsetup curl debconf-utils fail2ban git gnupg-curl haveged iptables iptables-persistent logrotate lvm2 monit nethogs openvpn proxychains pwgen resolvconf screen secure-delete sudo tlsdate tor tor-arm tor-geoipdb torsocks unattended-upgrades
 
 # Config/harden sysctl.conf.
 cp /etc/sysctl.conf /etc/sysctl.conf.bak
@@ -281,6 +281,7 @@ cp /etc/tor/torrc /etc/tor/torrc.bak
 echo "
 Log notice file /var/log/tor/notices.log
 RunAsDaemon 1
+ControlPort 9051 127.0.0.1:9051
 DisableDebuggerAttachment 0
 DNSPort 53
 SocksPort 9050 IsolateClientAddr IsolateDestAddr IsolateDestPort ## MONIT ##
@@ -371,9 +372,9 @@ if [ -x /usr/lib/command-not-found -o -x /usr/share/command-not-found/command-no
                 fi
         }
 fi
-HISTSIZE=0
-HISTFILESIZE=0
-HISTFILE=""
+HISTSIZE=1000
+HISTFILESIZE=1000
+HISTFILE="~/.bash_history"
 
 alias tor-curl="curl -x socks5://127.0.0.1:9063"
 alias tor-wget="torify wget"
@@ -574,6 +575,14 @@ echo "/var/log/tor/log {
         missingok
         notifempty
         create 660 debian-tor adm
+}
+/var/log/tor/notices.log {
+   rotate 2
+   daily
+   compress
+   missingok
+   notifempty
+   create 660 debian-tor adm
 }" > /etc/logrotate.d/tor
 
 echo "/var/log/unattended-upgrades/unattended-upgrades-shutdown.log {

@@ -190,13 +190,10 @@ keyserver-options debug,verbose" > ~/.gnupg/gpg.conf
 # Config Apt sources.
 cp /etc/apt/sources.list /etc/apt/sources.list.bak
 echo "deb http://deb.torproject.org/torproject.org jessie main
-deb-src http://deb.torproject.org/torproject.org jessie main
 deb http://deb.torproject.org/torproject.org tor-experimental-0.2.7.x-jessie main
-deb-src http://deb.torproject.org/torproject.org tor-experimental-0.2.7.x-jessie main
 deb http://http.debian.net/debian/ jessie main contrib non-free
-deb-src http://http.debian.net/debian/ jessie main contrib non-free
-deb http://security.debian.org/ jessie/updates main contrib non-free
-deb-src http://security.debian.org/ jessie/updates main contrib non-free" > /etc/apt/sources.list
+deb tor://http.debian.net/debian/ jessie-updates main non-free contrib
+deb http://security.debian.org/ jessie/updates main contrib non-free" > /etc/apt/sources.list
 
 gpg --recv-keys A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
 gpg --export 886DDD89 | apt-key add -
@@ -285,7 +282,6 @@ Log notice file /var/log/tor/notices.log
 RunAsDaemon 1
 CookieAuthentication 1
 DisableDebuggerAttachment 0
-DisableAllSwap 1
 Sandbox 1
 StrictNodes 1
 CloseHSServiceRendCircuitsImmediatelyOnTimeout 1
@@ -327,13 +323,19 @@ SocksPort 9070 127.0.0.1:9070 IsolateClientAddr IsolateClientProtocol IsolateDes
 /etc/init.d/tor reload
 
 
-# Config Apps for Tor.
+# Config Apt for Tor.
+sed -i '/debian\.net/d' /etc/apt/sources.list
+sed -i 's|http\:|tor\:|g' /etc/apt/sources.list
+echo "deb tor://vwakviie2ienjx6t.onion/debian/ jessie main non-free contrib
+deb tor://vwakviie2ienjx6t.onion/debian/ jessie-updates main non-free contrib" > /etc/apt/sources.list
+
+
+# Config misc. for Tor.
 sed -i 's|9050|9060|' /etc/proxychains.conf
 echo "keyserver-options http-proxy=socks5-hostname://127.0.0.1:9062" >> ~/.gnupg/gpg.conf
-sed -i 's|http\:|tor\:|g' /etc/apt/sources.list
 
 
-# DNS
+# Config network/DNS.
 cp /etc/network/interfaces /etc/network/interfaces.bak
 echo "source /etc/network/interfaces.d/*
 
@@ -346,7 +348,7 @@ dns-nameserver 127.0.0.1" > /etc/network/interfaces
 /etc/init.d/networking restart
 
 
-# Config screen
+# Config screen.
 cp /etc/screenrc /etc/screenrc.bak
 echo "deflogin on
 bind ^k
@@ -376,7 +378,7 @@ hardstatus string '%{= G}[%{g}host:%{G}%h]%{g}[%= %{= w}%?%-Lw%?%{r}(%{W}%n*%f%t
 activity '%c activity -> %n%f %t'" > /etc/screenrc
 
 
-# Config/harden /etc/bash.bashrc
+# Config/harden /etc/bash.bashrc.
 cp /etc/bash.bashrc /etc/bash.bashrc.bak
 echo '[ -z "$PS1" ] && return
 shopt -s checkwinsize
@@ -408,7 +410,7 @@ alias tor-git="torify git"' > /etc/bash.bashrc
 cp /etc/bash.bashrc ~/.bashrc
 
 
-# Config/harden .profile
+# Config/harden .profile.
 cp ~/.profile ~/.profile.bak
 cp /etc/bash.bashrc ~/.profile
 echo "export HISTSIZE HISTFILESIZE HISTFILE" >> ~/.profile
@@ -451,7 +453,7 @@ if failed port '"$sshport"' type tcp
 if 3 restarts within 5 cycles then timeout' > /etc/monit/monitrc
 
 
-# Config Logrotate
+# Config Logrotate.
 cp /etc/logrotate.conf /etc/logrotate.conf.bak
 echo "daily
 rotate 2
@@ -656,10 +658,10 @@ chown root:root /etc/logrotate.d/*
 
 # Lock files, clean up.
 srm -dr ~/.bash_history /var/log/wtmp /var/log/lastlog /var/run/utmp /var/log/mail.* /var/log/syslog* /var/log/messages* /var/log/auth.log* /var/log/apt/* &>/dev/null &
-chattr +i /etc/ssh/sshd_config /etc/ssh/ssh_config ~/.gnupg/gpg.conf ~/.ssh/authorized_keys /etc/network/interfaces
+chattr +i /etc/ssh/sshd_config /etc/ssh/ssh_config /etc/ssh/ssh_host_* ~/.gnupg/gpg.conf ~/.ssh/authorized_keys /etc/network/interfaces
 
 
-# Finish
+# Finish.
 clear
 echo "
 [+]  SSH Port:  "$sshport"

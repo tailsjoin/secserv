@@ -29,6 +29,7 @@ fi
 cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
 echo "Port "$sshport"
 Protocol 2
+DebianBanner no
 Banner /etc/issue.net
 HostKey /etc/ssh/ssh_host_rsa_key
 HostKey /etc/ssh/ssh_host_ed25519_key
@@ -279,25 +280,50 @@ update-grub
 # Config Tor.
 cp /etc/tor/torrc /etc/tor/torrc.bak
 echo "
+User $(id -u debian-tor)
 Log notice file /var/log/tor/notices.log
 RunAsDaemon 1
-ControlPort 9051 127.0.0.1:9051
+CookieAuthentication 1
 DisableDebuggerAttachment 0
-DNSPort 53
-SocksPort 9050 IsolateClientAddr IsolateDestAddr IsolateDestPort ## MONIT ##
-SocksPort 9060 IsolateClientAddr IsolateDestAddr IsolateDestPort ## PROXYCHAINS ##
-SocksPort 9061 IsolateClientAddr IsolateDestAddr IsolateDestPort ## SSH SERVICE ##
-HiddenServiceDir /var/lib/tor/ssh/                               #################
-HiddenServicePort "$sshport" 127.0.0.1:"$sshport"                #################
-SocksPort 9062 IsolateClientAddr IsolateDestAddr IsolateDestPort ## GNUPG ##
-SocksPort 9063 IsolateClientAddr IsolateDestAddr IsolateDestPort ## CURL ##
-SocksPort 9064 IsolateClientAddr IsolateDestAddr IsolateDestPort 
-SocksPort 9065 IsolateClientAddr IsolateDestAddr IsolateDestPort
-SocksPort 9066 IsolateClientAddr IsolateDestAddr IsolateDestPort
-SocksPort 9067 IsolateClientAddr IsolateDestAddr IsolateDestPort
-SocksPort 9068 IsolateClientAddr IsolateDestAddr IsolateDestPort
-SocksPort 9069 IsolateClientAddr IsolateDestAddr IsolateDestPort
-SocksPort 9070 IsolateClientAddr IsolateDestAddr IsolateDestPort" > /etc/tor/torrc
+DisableAllSwap 1
+Sandbox 1
+StrictNodes 1
+CloseHSServiceRendCircuitsImmediatelyOnTimeout 1
+CloseHSClientCircuitsImmediatelyOnTimeout 1
+FastFirstHopPK 0
+AutomapHostsSuffixes .
+
+## CONTROL PORT ##
+ControlPort 9051 127.0.0.1:9051
+
+## DNS PORT ##
+DNSPort 53 0.0.0.0:53 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+
+## MONIT PORT ##
+SocksPort 9050 127.0.0.1:9050 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+
+## PROXYCHAINS PORT ##
+SocksPort 9060 127.0.0.1:9060 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+
+## HIDDEN SERVICE PORT ##
+SocksPort 9061 127.0.0.1:9061 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+HiddenServiceDir /var/lib/tor/ssh/ ## SSH SERVICE DIR ##
+HiddenServicePort "$sshport" 127.0.0.1:"$sshport" ## SSH SERVICE PORT ##
+
+## GNUPG PORT ##
+SocksPort 9062 127.0.0.1:9062 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+
+## CURL PORT ##
+SocksPort 9063 127.0.0.1:9063 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+
+
+SocksPort 9064 127.0.0.1:9064 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9065 127.0.0.1:9065 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9066 127.0.0.1:9066 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9067 127.0.0.1:9067 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9068 127.0.0.1:9068 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9069 127.0.0.1:9069 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9070 127.0.0.1:9070 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort" > /etc/tor/torrc
 /etc/init.d/tor reload
 
 
@@ -390,7 +416,16 @@ echo "export HISTSIZE HISTFILESIZE HISTFILE" >> ~/.profile
 
 # Config Monit.
 cp /etc/monit/monitrc /etc/monit/monitrc.bak
-echo 'check process tor with pidfile /var/run/tor/tor.pid
+echo 'set daemon 120
+set logfile /var/log/monit.log
+set idfile /var/lib/monit/id
+set statefile /var/lib/monit/state
+set eventqueue
+    basedir /var/lib/monit/events
+    slots 100
+include /etc/monit/conf.d/*
+
+check process tor with pidfile /var/run/tor/tor.pid
 group tor
 start program = "/etc/init.d/tor start"
 stop program = "/etc/init.d/tor stop"
@@ -398,12 +433,15 @@ if failed port 9050 type tcp
    with timeout 5 seconds
    then restart
 if 3 restarts within 5 cycles then timeout
+
 check process fail2ban with pidfile /var/run/fail2ban/fail2ban.pid
 start program = "/etc/init.d/fail2ban start"
 stop program = "/etc/init.d/fail2ban stop"
+
 check process tlsdated with pidfile /var/run/tlsdated.pid
 start program = "/etc/init.d/tlsdated start"
 stop program = "/etc/init.d/tlsdated stop"
+
 check process sshd with pidfile /var/run/sshd.pid
 start program = "/etc/init.d/ssh start"
 stop program = "/etc/init.d/ssh stop"

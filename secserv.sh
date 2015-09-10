@@ -192,7 +192,7 @@ cp /etc/apt/sources.list /etc/apt/sources.list.bak
 echo "deb http://deb.torproject.org/torproject.org jessie main
 deb http://deb.torproject.org/torproject.org tor-experimental-0.2.7.x-jessie main
 deb http://http.debian.net/debian/ jessie main contrib non-free
-deb tor://http.debian.net/debian/ jessie-updates main non-free contrib
+deb http://http.debian.net/debian/ jessie-updates main non-free contrib
 deb http://security.debian.org/ jessie/updates main contrib non-free" > /etc/apt/sources.list
 
 gpg --recv-keys A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
@@ -209,6 +209,7 @@ apt-get update
 apt-get upgrade -y
 apt-get install -y deb.torproject.org-keyring
 apt-get install -y apparmor apparmor-profiles apparmor-utils apt-listchanges apt-transport-tor attr cryptsetup curl debconf-utils fail2ban git gnupg-curl haveged iptables iptables-persistent logrotate lvm2 monit nethogs openvpn proxychains pwgen resolvconf screen secure-delete sudo tlsdate tor tor-arm tor-geoipdb torsocks unattended-upgrades
+
 
 # Config/harden sysctl.conf.
 cp /etc/sysctl.conf /etc/sysctl.conf.bak
@@ -277,12 +278,9 @@ update-grub
 # Config Tor.
 cp /etc/tor/torrc /etc/tor/torrc.bak
 echo "
-User $(id -u debian-tor)
-Log notice file /var/log/tor/notices.log
 RunAsDaemon 1
 CookieAuthentication 1
 DisableDebuggerAttachment 0
-Sandbox 1
 StrictNodes 1
 CloseHSServiceRendCircuitsImmediatelyOnTimeout 1
 CloseHSClientCircuitsImmediatelyOnTimeout 1
@@ -290,36 +288,36 @@ FastFirstHopPK 0
 AutomapHostsSuffixes .
 
 ## CONTROL PORT ##
-ControlPort 9051 127.0.0.1:9051
+ControlPort 9051
 
 ## DNS PORT ##
-DNSPort 53 0.0.0.0:53 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+DNSPort 53 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
 
 ## MONIT PORT ##
-SocksPort 9050 127.0.0.1:9050 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9050 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
 
 ## PROXYCHAINS PORT ##
-SocksPort 9060 127.0.0.1:9060 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9060 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
 
 ## HIDDEN SERVICE PORT ##
-SocksPort 9061 127.0.0.1:9061 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9061 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
 HiddenServiceDir /var/lib/tor/ssh/ ## SSH SERVICE DIR ##
 HiddenServicePort "$sshport" 127.0.0.1:"$sshport" ## SSH SERVICE PORT ##
 
 ## GNUPG PORT ##
-SocksPort 9062 127.0.0.1:9062 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9062 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
 
 ## CURL PORT ##
-SocksPort 9063 127.0.0.1:9063 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9063 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
 
 
-SocksPort 9064 127.0.0.1:9064 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
-SocksPort 9065 127.0.0.1:9065 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
-SocksPort 9066 127.0.0.1:9066 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
-SocksPort 9067 127.0.0.1:9067 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
-SocksPort 9068 127.0.0.1:9068 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
-SocksPort 9069 127.0.0.1:9069 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
-SocksPort 9070 127.0.0.1:9070 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort" > /etc/tor/torrc
+SocksPort 9064 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9065 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9066 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9067 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9068 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9069 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
+SocksPort 9070 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort" > /etc/tor/torrc
 /etc/init.d/tor reload
 
 
@@ -327,7 +325,7 @@ SocksPort 9070 127.0.0.1:9070 IsolateClientAddr IsolateClientProtocol IsolateDes
 sed -i '/debian\.net/d' /etc/apt/sources.list
 sed -i 's|http\:|tor\:|g' /etc/apt/sources.list
 echo "deb tor://vwakviie2ienjx6t.onion/debian/ jessie main non-free contrib
-deb tor://vwakviie2ienjx6t.onion/debian/ jessie-updates main non-free contrib" > /etc/apt/sources.list
+deb tor://vwakviie2ienjx6t.onion/debian/ jessie-updates main non-free contrib" >> /etc/apt/sources.list
 
 
 # Config misc. for Tor.

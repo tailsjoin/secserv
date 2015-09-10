@@ -36,7 +36,6 @@ HostKey /etc/ssh/ssh_host_ed25519_key
 KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256
 UsePrivilegeSeparation yes
 KeyRegenerationInterval 3600
-ServerKeyBits 4096
 SyslogFacility AUTH
 LogLevel INFO
 LoginGraceTime 30
@@ -199,7 +198,7 @@ gpg --recv-keys A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89
 gpg --export 886DDD89 | apt-key add -
 
 
-# Config debconf.
+# Config Iptables-persistent.
 echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | debconf-set-selections
 echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debconf-set-selections
 
@@ -227,7 +226,7 @@ net.ipv4.conf.all.accept_source_route = 0" > /etc/sysctl.conf
 sysctl -p
 
 
-# Iptable rules.
+# Config Iptables.
 echo "*filter
 :INPUT DROP [0:0]
 :FORWARD DROP [0:0]
@@ -264,10 +263,10 @@ iptables-restore < /etc/iptables/rules.v4
 ip6tables-restore < /etc/iptables/rules.v6
 
 
-# Config Unattended Upgrades.
+# Config Unattended-upgrades.
 echo 'APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";' > /etc/apt/apt.conf.d/20auto-upgrades
-service unattended-upgrades restart
+/etc/init.d/unattended-upgrades restart
 
 
 # Config Apparmor
@@ -440,15 +439,56 @@ stop program = "/etc/init.d/fail2ban stop"
 
 check process tlsdated with pidfile /var/run/tlsdated.pid
 start program = "/etc/init.d/tlsdated start"
-stop program = "/etc/init.d/tlsdated stop"
+stop program = "/etc/init.d/tlsdated stop"' > /etc/monit/monitrc
 
-check process sshd with pidfile /var/run/sshd.pid
-start program = "/etc/init.d/ssh start"
-stop program = "/etc/init.d/ssh stop"
-if failed port '"$sshport"' type tcp
-   with timeout 5 seconds
-   then restart
-if 3 restarts within 5 cycles then timeout' > /etc/monit/monitrc
+echo 'check process sshd with pidfile /var/run/sshd.pid
+  group system
+  group sshd
+  start program = "/etc/init.d/ssh start"
+  stop  program = "/etc/init.d/ssh stop"
+  if failed host localhost port '"$sshport"' with proto ssh then restart
+  if 5 restarts with 5 cycles then timeout
+  depend on sshd_bin
+  depend on sftp_bin
+  depend on sshd_rc
+  depend on sshd_rsa_key
+  depend on sshd_ed25519_key
+
+check file sshd_bin with path /usr/sbin/sshd
+  group sshd
+  if failed checksum       then unmonitor
+  if failed permission 755 then unmonitor
+  if failed uid root       then unmonitor
+  if failed gid root       then unmonitor
+
+check file sftp_bin with path /usr/lib/openssh/sftp-server
+  group sshd
+  if failed checksum       then unmonitor
+  if failed permission 755 then unmonitor
+  if failed uid root       then unmonitor
+  if failed gid root       then unmonitor
+
+check file sshd_rsa_key with path /etc/ssh/ssh_host_rsa_key
+  group sshd
+  if failed checksum       then unmonitor
+  if failed permission 600 then unmonitor
+  if failed uid root       then unmonitor
+  if failed gid root       then unmonitor
+
+check file sshd_dsa_key with path /etc/ssh/ssh_host_ed25519_key
+  group sshd
+  if failed checksum       then unmonitor
+  if failed permission 600 then unmonitor
+  if failed uid root       then unmonitor
+  if failed gid root       then unmonitor
+
+check file sshd_rc with path /etc/ssh/sshd_config
+  group sshd
+  if changed checksum      then alert
+  if failed permission 644 then unmonitor
+  if failed uid root       then unmonitor
+  if failed gid root       then unmonitor' > /etc/monit/monitrc.d/openssh-server
+/etc/init.d/monit reload
 
 
 # Config Logrotate.
@@ -484,21 +524,13 @@ echo "/var/log/alternatives.log {
         create 660 root root
 }" > /etc/logrotate.d/alternatives.log
 
-echo "/var/log/apt/history.log {
+echo "/var/log/apt/*{
         rotate 2
         daily
         compress
         missingok
         notifempty
         create 660 root root
-}
-/var/log/apt/term.log {
-        rotate 2
-        daily
-        compress
-        missingok
-        notifempty
-        create 660 root adm
 }" > /etc/logrotate.d/apt
 
 echo "/var/log/auth.log {
@@ -546,31 +578,7 @@ echo "/var/log/kern.log {
         create 660 root adm
 }" > /etc/logrotate.d/kern.log
 
-echo "/var/log/mail.err {
-        rotate 2
-        daily
-        compress
-        missingok
-        notifempty
-        create 660 root adm
-}
-/var/log/mail.info {
-        rotate 2
-        daily
-        compress
-        missingok
-        notifempty
-        create 660 root adm
-}
-/var/log/mail.log {
-        rotate 2
-        daily
-        compress
-        missingok
-        notifempty
-        create 660 root adm
-}
-/var/log/mail.warn {
+echo "/var/log/mail.* {
         rotate 2
         daily
         compress
@@ -613,26 +621,9 @@ echo "/var/log/tor/log {
         missingok
         notifempty
         create 660 debian-tor adm
-}
-/var/log/tor/notices.log {
-   rotate 2
-   daily
-   compress
-   missingok
-   notifempty
-   create 660 debian-tor adm
 }" > /etc/logrotate.d/tor
 
-echo "/var/log/unattended-upgrades/unattended-upgrades-shutdown.log {
-        rotate 2
-        daily
-        compress
-        missingok
-        notifempty
-        create 660 root root
-}
-
-/var/log/unattended-upgrades/unattended-upgrades.log {
+echo "/var/log/unattended-upgrades/unattended-upgrades* {
         rotate 2
         daily
         compress

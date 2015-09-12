@@ -223,6 +223,7 @@ net.ipv4.conf.all.log_martians = 1
 net.ipv4.conf.all.rp_filter = 1
 net.ipv4.tcp_syncookies = 1
 net.ipv4.conf.all.accept_source_route = 0" > /etc/sysctl.conf
+
 sysctl -p
 
 
@@ -257,6 +258,7 @@ echo "*filter
 -A INPUT -m state --state INVALID -j DROP
 
 COMMIT" > /etc/iptables/rules.v6
+
 chmod 600 /etc/iptables/rules.v4
 chmod 600 /etc/iptables/rules.v6
 iptables-restore < /etc/iptables/rules.v4
@@ -266,11 +268,13 @@ ip6tables-restore < /etc/iptables/rules.v6
 # Config Unattended-upgrades.
 echo 'APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";' > /etc/apt/apt.conf.d/20auto-upgrades
+
 /etc/init.d/unattended-upgrades restart
 
 
 # Config Apparmor
 sed -i 's/GRUB_CMDLINE_LINUX="\(.*\)"/GRUB_CMDLINE_LINUX="\1 apparmor=1 security=apparmor"/' /etc/default/grub
+
 update-grub
 
 
@@ -285,6 +289,7 @@ CloseHSServiceRendCircuitsImmediatelyOnTimeout 1
 CloseHSClientCircuitsImmediatelyOnTimeout 1
 FastFirstHopPK 0
 AutomapHostsSuffixes .
+AutomapHostsOnResolve 1
 
 ## CONTROL PORT ##
 ControlPort 9051
@@ -317,7 +322,9 @@ SocksPort 9067 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDe
 SocksPort 9068 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
 SocksPort 9069 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
 SocksPort 9070 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort" > /etc/tor/torrc
+
 /etc/init.d/tor reload
+update-rc.d tor enable
 
 
 # Config Apt for Tor.
@@ -342,6 +349,7 @@ iface lo inet loopback
 allow-hotplug eth0
 iface eth0 inet dhcp
 dns-nameserver 127.0.0.1" > /etc/network/interfaces
+
 /etc/init.d/networking restart
 
 
@@ -488,6 +496,7 @@ check file sshd_rc with path /etc/ssh/sshd_config
   if failed permission 644 then unmonitor
   if failed uid root       then unmonitor
   if failed gid root       then unmonitor' > /etc/monit/monitrc.d/openssh-server
+
 /etc/init.d/monit reload
 
 
